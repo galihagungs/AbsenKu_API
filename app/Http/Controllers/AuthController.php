@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
@@ -17,10 +18,10 @@ class AuthController extends Controller
         ]);
         $user = User::create($request->only(['name', 'email', 'password']));
         $token = $user->createToken('auth_token')->plainTextToken;
-        return [
+        return  response()->json([
             'user' => $user,
             'token' => $token,
-        ];
+        ],200);
     }
 
     public function login(Request $request)
@@ -38,9 +39,34 @@ class AuthController extends Controller
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
-        return [
+
+        if ($user->tokens()->exists()) {
+            return response()->json([
+                'error' => 'User is already logged in on another device',
+            ], 403);
+        }
+
+        return  response()->json([
             'user' => $user,
             'token' => $token,
-        ];
+        ],200);
+    }
+
+    public function logout()
+    {
+        Auth::user()->tokens()->delete();
+        return response()->json([
+            'message' => 'logout success'
+        ], 200);
+    }
+
+    public function userUpdate(Request $request)
+    {
+        $user = Auth::user();
+        $user->update($request->only(['name', 'email']));
+        return response()->json([
+            'message' => 'User updated successfully',
+            'data' => $user
+        ],200);
     }
 }
